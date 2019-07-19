@@ -21,6 +21,9 @@ function WebShower (log, config) {
   this.port = config.port || 2000
   this.requestArray = ['state']
 
+  this.heads = config.heads || 2
+  this.headArray = []
+
   this.manufacturer = config.manufacturer || packageJson.author.name
   this.serial = config.serial || this.apiroute
   this.model = config.model || packageJson.name
@@ -58,7 +61,7 @@ function WebShower (log, config) {
     }.bind(this))
   }
 
-  this.service = new Service.Valve(this.name)
+  this.service = new Service.Faucet(this.name)
 }
 
 WebShower.prototype = {
@@ -114,9 +117,10 @@ WebShower.prototype = {
     }
   },
 
-  setActive: function (value, callback) {
+  setState: function (value, callback) {
     var url = this.apiroute + '/setState/' + value
-    this.log.debug('Setting state: %s', url)
+    // this.log.debug('Setting state: %s', url)
+    this.log('Setting state: %s', url)
 
     this._httpRequest(url, '', this.http_method, function (error, response, responseBody) {
       if (error) {
@@ -124,7 +128,37 @@ WebShower.prototype = {
         callback(error)
       } else {
         this.log('Set state to %s', value)
-        this.service.getCharacteristic(Characteristic.InUse).updateValue(value)
+        callback()
+      }
+    }.bind(this))
+  },
+
+  setTemperature: function (value, callback) {
+    var url = this.apiroute + '/setTemperature/' + value
+    this.log.debug('Setting state: %s', url)
+
+    this._httpRequest(url, '', this.http_method, function (error, response, responseBody) {
+      if (error) {
+        this.log.warn('Error setting temperature: %s', error.message)
+        callback(error)
+      } else {
+        this.log('Set temperature to %s', value)
+        callback()
+      }
+    }.bind(this))
+  },
+
+  setActive: function (head, value, callback) {
+    var url = this.apiroute + '/setState/' + value
+    this.log.debug('Head %s | Setting state: %s', head, url)
+
+    this._httpRequest(url, '', this.http_method, function (error, response, responseBody) {
+      if (error) {
+        this.log.warn('Head %s | Error setting state: %s', head, error.message)
+        callback(error)
+      } else {
+        this.log('Head %s | Set state to %s', head, value)
+        // this.headArray[head].getCharacteristic(Characteristic.InUse).updateValue(value)
         callback()
       }
     }.bind(this))
@@ -138,19 +172,44 @@ WebShower.prototype = {
       .setCharacteristic(Characteristic.SerialNumber, this.serial)
       .setCharacteristic(Characteristic.FirmwareRevision, this.firmware)
 
-    this.service.getCharacteristic(Characteristic.ValveType).updateValue(this.valveType)
+    this.service.getCharacteristic(Characteristic.TargetHeaterCoolerState).updateValue(0)
+
+    this.service
+      .getCharacteristic(Characteristic.HeatingThresholdTemperature)
+      .on('set', this.setTemperature.bind(this))
 
     this.service
       .getCharacteristic(Characteristic.Active)
-      .on('set', this.setActive.bind(this))
+      .on('set', this.setState.bind(this))
 
+    var services = [this.informationService, this.service]
+    for (var head = 1; head <= this.heads; head++) {
+      var accessory = new Service.Valve('Head', head)
+      accessory
+        .setCharacteristic(Characteristic.ServiceLabelIndex, head)
+        .setCharacteristic(Characteristic.ValveType, 2)
+      accessory.getCharacteristic(Characteristic.Active).updateValue(0)
+      accessory.getCharacteristic(Characteristic.InUse).updateValue(0)
+
+      accessory
+        .getCharacteristic(Characteristic.Active)
+        .on('set', this.setActive.bind(this, head))
+
+      this.headArray[head] = accessory
+      this.service.addLinkedService(accessory)
+      services.push(accessory)
+    }
+    this.log('Initialized %s heads', this.heads)
+
+    /*
     this._getStatus(function () {})
 
     setInterval(function () {
       this._getStatus(function () {})
     }.bind(this), this.pollInterval * 1000)
+    */
 
-    return [this.informationService, this.service]
+    return services
   }
 
 }

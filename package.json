@@ -1,6 +1,6 @@
 {
   "name": "homebridge-web-shower",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Homebridge plugin for a web-based shower",
   "main": "index.js",
   "dependencies": {

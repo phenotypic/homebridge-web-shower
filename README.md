@@ -88,12 +88,12 @@ Your API should be able to:
 
 2. Set zone state when it receives:
 ```
-/zone/setState/INT_VALUE
+/state?value=INT_VALUE?zone=INT_VALUE
 ```
 
 ### Optional (if listener is enabled)
 
 1. Update `state` following a manual zone override by messaging the listen server:
 ```
-/zone/state/INT_VALUE
+/state?value=INT_VALUE?zone=INT_VALUE
 ```

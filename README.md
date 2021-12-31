@@ -43,7 +43,7 @@ This [homebridge](https://github.com/homebridge/homebridge) plugin exposes a web
 | `key` | Your [Apixu API](https://www.apixu.com) key  | N/A |
 | `zones` | Number of sprinkler zones  | `3` |
 
-## Optional fields
+### Optional fields
 | Key | Description | Default |
 | --- | --- | --- |
 | `scheduling` | Whether or not to enable scheduling (`yes`/`no`)  | `yes` |
